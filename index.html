@@ -7,6 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="src/css/styles.css">
+    <!-- Firebase SDK -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"
+            }
+        }
+    </script>
     <style>
         /* Estilo personalizado para scrollbars si es necesario */
         ::-webkit-scrollbar {
@@ -138,7 +147,7 @@
     </div>
 
     <script type="module">
-        import { getSchedules, saveSchedules } from './src/js/utils.js';
+        import { utils } from './src/js/utils.js';
         import { Modal } from './src/components/Modal.js';
         import { Calendar } from './src/components/Calendar.js';
 
@@ -151,36 +160,38 @@
         calendar.setOnCardClick((schedule) => modal.open(schedule));
 
         // Manejar el envío del formulario
-        modal.setOnSubmit((scheduleData) => {
+        modal.setOnSubmit(async (scheduleData) => {
             if (scheduleData.startTime >= scheduleData.endTime) {
                 alert('La hora de inicio debe ser anterior a la hora de fin.');
                 return;
             }
 
-            let schedules = getSchedules();
-            if (scheduleData.id) {
-                schedules = schedules.map(s => s.id === scheduleData.id ? scheduleData : s);
-            } else {
-                schedules.push(scheduleData);
+            try {
+                await utils.saveSchedule(scheduleData);
+                modal.close();
+            } catch (error) {
+                console.error('Error al guardar el horario:', error);
+                alert('Hubo un error al guardar el horario. Por favor, intenta nuevamente.');
             }
-
-            saveSchedules(schedules);
-            calendar.renderSchedules(schedules);
-            modal.close();
         });
 
         // Manejar la eliminación
-        modal.setOnDelete((scheduleId) => {
-            let schedules = getSchedules();
-            schedules = schedules.filter(s => s.id !== scheduleId);
-            saveSchedules(schedules);
-            calendar.renderSchedules(schedules);
-            modal.close();
+        modal.setOnDelete(async (scheduleId) => {
+            try {
+                await utils.deleteSchedule(scheduleId);
+                modal.close();
+            } catch (error) {
+                console.error('Error al eliminar el horario:', error);
+                alert('Hubo un error al eliminar el horario. Por favor, intenta nuevamente.');
+            }
         });
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', () => {
-            calendar.renderSchedules(getSchedules());
+            // Suscribirse a cambios en los horarios
+            utils.getSchedules((schedules) => {
+                calendar.renderSchedules(schedules);
+            });
         });
     </script>
 </body>
