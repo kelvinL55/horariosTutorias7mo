@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horarios de Tutorías</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="src/css/styles.css">
+    <style>
+        /* Estilo personalizado para scrollbars si es necesario */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Asegurar que el modal esté centrado y tenga un fondo oscuro */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;  /* Asegurar que esté por encima de otros elementos */
+        }
+        .modal-content {
+            max-height: 90vh;  /* Limitar altura máxima */
+            overflow-y: auto;  /* Permitir scroll si el contenido es muy largo */
+        }
+        /* Estilo para las tarjetas de horario */
+        .schedule-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .schedule-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4 mdp-8">
+    <div class="container mx-auto max-w-7xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700">Mis Horarios de Tutorías</h1>
+            <p class="text-gray-600 mt-2">Gestiona tus sesiones de tutoría semanales (Lunes a Viernes).</p>
+        </header>
+
+        <div class="text-center mb-6">
+            <button id="addScheduleBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-300 ease-in-out flex items-center justify-center mx-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus mr-2">
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                </svg>
+                Agregar Horario
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div class="day-column bg-white p-4 rounded-lg shadow" data-day="Lunes">
+                <h2 class="font-semibold text-lg text-center text-gray-700 border-b pb-2 mb-4">Lunes</h2>
+                <div class="schedules-container space-y-3 min-h-[100px]"></div>
+            </div>
+            <div class="day-column bg-white p-4 rounded-lg shadow" data-day="Martes">
+                <h2 class="font-semibold text-lg text-center text-gray-700 border-b pb-2 mb-4">Martes</h2>
+                <div class="schedules-container space-y-3 min-h-[100px]"></div>
+            </div>
+            <div class="day-column bg-white p-4 rounded-lg shadow" data-day="Miércoles">
+                <h2 class="font-semibold text-lg text-center text-gray-700 border-b pb-2 mb-4">Miércoles</h2>
+                <div class="schedules-container space-y-3 min-h-[100px]"></div>
+            </div>
+            <div class="day-column bg-white p-4 rounded-lg shadow" data-day="Jueves">
+                <h2 class="font-semibold text-lg text-center text-gray-700 border-b pb-2 mb-4">Jueves</h2>
+                <div class="schedules-container space-y-3 min-h-[100px]"></div>
+            </div>
+            <div class="day-column bg-white p-4 rounded-lg shadow" data-day="Viernes">
+                <h2 class="font-semibold text-lg text-center text-gray-700 border-b pb-2 mb-4">Viernes</h2>
+                <div class="schedules-container space-y-3 min-h-[100px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="scheduleModal" class="modal-overlay hidden">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-md m-4">
+            <h2 id="modalTitle" class="text-2xl font-semibold mb-6 text-gray-800">Agregar Nuevo Horario</h2>
+            <form id="scheduleForm">
+                <input type="hidden" id="scheduleId">
+                <div class="mb-4">
+                    <label for="subject" class="block text-gray-700 text-sm font-bold mb-2">Materia</label>
+                    <input type="text" id="subject" name="subject" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                </div>
+                <div class="mb-4">
+                    <label for="parallel" class="block text-gray-700 text-sm font-bold mb-2">Paralelo</label>
+                    <input type="text" id="parallel" name="parallel" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+                <div class="mb-4">
+                    <label for="day" class="block text-gray-700 text-sm font-bold mb-2">Día</label>
+                    <select id="day" name="day" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="startTime" class="block text-gray-700 text-sm font-bold mb-2">Hora Inicio</label>
+                        <input type="time" id="startTime" name="startTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    </div>
+                    <div>
+                        <label for="endTime" class="block text-gray-700 text-sm font-bold mb-2">Hora Fin</label>
+                        <input type="time" id="endTime" name="endTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label for="notes" class="block text-gray-700 text-sm font-bold mb-2">Notas (Opcional)</label>
+                    <textarea id="notes" name="notes" rows="2" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" id="saveScheduleBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Guardar</button>
+                    <button type="button" id="cancelModalBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Cancelar</button>
+                    <button type="button" id="deleteScheduleBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 hidden">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getSchedules, saveSchedules } from './src/js/utils.js';
+        import { Modal } from './src/components/Modal.js';
+        import { Calendar } from './src/components/Calendar.js';
+
+        // Inicializar componentes
+        const modal = new Modal();
+        const calendar = new Calendar();
+
+        // Configurar eventos
+        document.getElementById('addScheduleBtn').addEventListener('click', () => modal.open());
+        calendar.setOnCardClick((schedule) => modal.open(schedule));
+
+        // Manejar el envío del formulario
+        modal.setOnSubmit((scheduleData) => {
+            if (scheduleData.startTime >= scheduleData.endTime) {
+                alert('La hora de inicio debe ser anterior a la hora de fin.');
+                return;
+            }
+
+            let schedules = getSchedules();
+            if (scheduleData.id) {
+                schedules = schedules.map(s => s.id === scheduleData.id ? scheduleData : s);
+            } else {
+                schedules.push(scheduleData);
+            }
+
+            saveSchedules(schedules);
+            calendar.renderSchedules(schedules);
+            modal.close();
+        });
+
+        // Manejar la eliminación
+        modal.setOnDelete((scheduleId) => {
+            let schedules = getSchedules();
+            schedules = schedules.filter(s => s.id !== scheduleId);
+            saveSchedules(schedules);
+            calendar.renderSchedules(schedules);
+            modal.close();
+        });
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', () => {
+            calendar.renderSchedules(getSchedules());
+        });
+    </script>
+</body>
+</html>
