@@ -1,23 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Horarios de Tutorías</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="src/css/styles.css">
-    <!-- Firebase SDK -->
-    <script type="importmap">
-        {
-            "imports": {
-                "firebase/app": "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js",
-                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"
-            }
-        }
-    </script>
     <style>
-        /* Estilo personalizado para scrollbars si es necesario */
+        /* Estilo personalizado para scrollbars */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -32,7 +21,16 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
-        /* Asegurar que el modal esté centrado y tenga un fondo oscuro */
+        /* Estilo para las tarjetas de horario */
+        .schedule-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .schedule-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -40,39 +38,78 @@
             right: 0;
             bottom: 0;
             background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
-            z-index: 50;  /* Asegurar que esté por encima de otros elementos */
+            z-index: 50;
         }
         .modal-content {
-            max-height: 90vh;  /* Limitar altura máxima */
-            overflow-y: auto;  /* Permitir scroll si el contenido es muy largo */
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        /* Estilo para las tarjetas de horario */
-        .schedule-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        /* Modo oscuro */
+        .dark {
+            background-color: #1a202c;
+            color: #e2e8f0;
         }
-        .schedule-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        .dark .bg-white {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+        .dark .text-gray-600, .dark .text-gray-700, .dark .text-gray-800 {
+            color: #cbd5e0;
+        }
+        .dark .bg-indigo-50 {
+            background-color: #434190;
+            color: #e2e8f0;
+        }
+        .dark .text-indigo-800 {
+            color: #ebf4ff;
+        }
+        .dark .border-b {
+            border-color: #4a5568;
+        }
+        .dark .bg-indigo-600 {
+            background-color: #5a67d8;
+        }
+        .dark .bg-indigo-600:hover {
+            background-color: #6875f5;
+        }
+        .dark .bg-red-600 {
+            background-color: #e53e3e;
+        }
+        .dark .bg-red-600:hover {
+            background-color: #f56565;
+        }
+        .dark .bg-gray-200 {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+        .dark .bg-gray-200:hover {
+            background-color: #718096;
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans p-4 mdp-8">
+<body class="bg-gray-100 font-sans p-4 mdp-8">    
     <div class="container mx-auto max-w-7xl">
-        <header class="mb-8 text-center">
+        <header class="mb-6 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-indigo-700">Mis Horarios de Tutorías</h1>
             <p class="text-gray-600 mt-2">Gestiona tus sesiones de tutoría semanales (Lunes a Viernes).</p>
         </header>
 
-        <div class="text-center mb-6">
-            <button id="addScheduleBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-300 ease-in-out flex items-center justify-center mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <a href="agregar-horario.html" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-300 ease-in-out flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus mr-2">
                     <path d="M5 12h14" />
                     <path d="M12 5v14" />
                 </svg>
                 Agregar Horario
+            </a>
+            
+            <button id="toggleDarkMode" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg shadow transition duration-300 ease-in-out">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
             </button>
         </div>
 
@@ -100,22 +137,23 @@
         </div>
     </div>
 
-    <div id="scheduleModal" class="modal-overlay hidden">
+    <!-- Modal de Edición -->
+    <div id="editModal" class="modal-overlay">
         <div class="modal-content bg-white p-6 rounded-lg shadow-xl w-full max-w-md m-4">
-            <h2 id="modalTitle" class="text-2xl font-semibold mb-6 text-gray-800">Agregar Nuevo Horario</h2>
-            <form id="scheduleForm">
-                <input type="hidden" id="scheduleId">
+            <h2 id="modalTitle" class="text-2xl font-semibold mb-6 text-gray-800">Editar Horario</h2>
+            <form id="editForm">
+                <input type="hidden" id="scheduleId" name="scheduleId">
                 <div class="mb-4">
-                    <label for="subject" class="block text-gray-700 text-sm font-bold mb-2">Materia</label>
-                    <input type="text" id="subject" name="subject" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    <label for="editSubject" class="block text-gray-700 text-sm font-bold mb-2">Materia</label>
+                    <input type="text" id="editSubject" name="subject" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                 </div>
                 <div class="mb-4">
-                    <label for="parallel" class="block text-gray-700 text-sm font-bold mb-2">Paralelo</label>
-                    <input type="text" id="parallel" name="parallel" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <label for="editParallel" class="block text-gray-700 text-sm font-bold mb-2">Paralelo</label>
+                    <input type="text" id="editParallel" name="parallel" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                 </div>
                 <div class="mb-4">
-                    <label for="day" class="block text-gray-700 text-sm font-bold mb-2">Día</label>
-                    <select id="day" name="day" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    <label for="editDay" class="block text-gray-700 text-sm font-bold mb-2">Día</label>
+                    <select id="editDay" name="day" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                         <option value="Lunes">Lunes</option>
                         <option value="Martes">Martes</option>
                         <option value="Miércoles">Miércoles</option>
@@ -125,73 +163,239 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label for="startTime" class="block text-gray-700 text-sm font-bold mb-2">Hora Inicio</label>
-                        <input type="time" id="startTime" name="startTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                        <label for="editStartTime" class="block text-gray-700 text-sm font-bold mb-2">Hora Inicio</label>
+                        <input type="time" id="editStartTime" name="startTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                     </div>
                     <div>
-                        <label for="endTime" class="block text-gray-700 text-sm font-bold mb-2">Hora Fin</label>
-                        <input type="time" id="endTime" name="endTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                        <label for="editEndTime" class="block text-gray-700 text-sm font-bold mb-2">Hora Fin</label>
+                        <input type="time" id="editEndTime" name="endTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                     </div>
                 </div>
                 <div class="mb-6">
-                    <label for="notes" class="block text-gray-700 text-sm font-bold mb-2">Notas (Opcional)</label>
-                    <textarea id="notes" name="notes" rows="2" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                    <label for="editNotes" class="block text-gray-700 text-sm font-bold mb-2">Notas (Opcional)</label>
+                    <textarea id="editNotes" name="notes" rows="2" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
                 </div>
                 <div class="flex items-center justify-between">
-                    <button type="submit" id="saveScheduleBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Guardar</button>
-                    <button type="button" id="cancelModalBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Cancelar</button>
-                    <button type="button" id="deleteScheduleBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 hidden">Eliminar</button>
+                    <button type="submit" id="saveEditBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Guardar</button>
+                    <button type="button" id="cancelEditBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Cancelar</button>
+                    <button type="button" id="deleteScheduleBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Eliminar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script type="module">
-        import { utils } from './src/js/utils.js';
-        import { Modal } from './src/components/Modal.js';
-        import { Calendar } from './src/components/Calendar.js';
+    <script>
+        // Constantes
+        const STORAGE_KEY = 'tutoriasSchedules_L-V';
+        const DARK_MODE_KEY = 'tutoriasDarkMode';
 
-        // Inicializar componentes
-        const modal = new Modal();
-        const calendar = new Calendar();
+        // Función para obtener horarios
+        function getSchedules() {
+            const schedulesJson = localStorage.getItem(STORAGE_KEY);
+            if (schedulesJson) {
+                try {
+                    return JSON.parse(schedulesJson);
+                } catch (e) {
+                    console.error('Error al leer los horarios:', e);
+                    return [];
+                }
+            }
+            return [];
+        }
 
-        // Configurar eventos
-        document.getElementById('addScheduleBtn').addEventListener('click', () => modal.open());
-        calendar.setOnCardClick((schedule) => modal.open(schedule));
+        // Función para guardar horarios
+        function saveSchedules(schedules) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules));
+        }
 
-        // Manejar el envío del formulario
-        modal.setOnSubmit(async (scheduleData) => {
-            if (scheduleData.startTime >= scheduleData.endTime) {
-                alert('La hora de inicio debe ser anterior a la hora de fin.');
-                return;
+        // Función para eliminar un horario
+        function deleteSchedule(id) {
+            const schedules = getSchedules();
+            const updatedSchedules = schedules.filter(s => s.id !== id);
+            saveSchedules(updatedSchedules);
+        }
+
+        // Función para actualizar un horario
+        function updateSchedule(updatedSchedule) {
+            const schedules = getSchedules();
+            const index = schedules.findIndex(s => s.id === updatedSchedule.id);
+            if (index !== -1) {
+                schedules[index] = updatedSchedule;
+                saveSchedules(schedules);
+                return true;
+            }
+            return false;
+        }
+
+        // Modal de edición
+        class EditModal {
+            constructor() {
+                this.modal = document.getElementById('editModal');
+                this.form = document.getElementById('editForm');
+                this.scheduleId = document.getElementById('scheduleId');
+                this.saveBtn = document.getElementById('saveEditBtn');
+                this.cancelBtn = document.getElementById('cancelEditBtn');
+                this.deleteBtn = document.getElementById('deleteScheduleBtn');
+                
+                this.setupEventListeners();
             }
 
-            try {
-                await utils.saveSchedule(scheduleData);
-                modal.close();
-            } catch (error) {
-                console.error('Error al guardar el horario:', error);
-                alert('Hubo un error al guardar el horario. Por favor, intenta nuevamente.');
-            }
-        });
+            setupEventListeners() {
+                this.cancelBtn.addEventListener('click', () => this.close());
+                this.modal.addEventListener('click', (event) => {
+                    if (event.target === this.modal) {
+                        this.close();
+                    }
+                });
 
-        // Manejar la eliminación
-        modal.setOnDelete(async (scheduleId) => {
-            try {
-                await utils.deleteSchedule(scheduleId);
-                modal.close();
-            } catch (error) {
-                console.error('Error al eliminar el horario:', error);
-                alert('Hubo un error al eliminar el horario. Por favor, intenta nuevamente.');
+                this.form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this.form);
+                    const scheduleData = {
+                        id: this.scheduleId.value,
+                        subject: formData.get('subject'),
+                        parallel: formData.get('parallel'),
+                        day: formData.get('day'),
+                        startTime: formData.get('startTime').replace(':', ''),
+                        endTime: formData.get('endTime').replace(':', ''),
+                        notes: formData.get('notes')
+                    };
+                    
+                    // Validar hora inicio menor que hora fin
+                    if (scheduleData.startTime >= scheduleData.endTime) {
+                        alert('La hora de inicio debe ser anterior a la hora de fin.');
+                        return;
+                    }
+                    
+                    if (updateSchedule(scheduleData)) {
+                        this.close();
+                        location.reload();
+                    }
+                });
+
+                this.deleteBtn.addEventListener('click', () => {
+                    if (confirm('¿Estás seguro de que deseas eliminar este horario?')) {
+                        deleteSchedule(this.scheduleId.value);
+                        this.close();
+                        location.reload();
+                    }
+                });
             }
-        });
+
+            open(schedule) {
+                this.scheduleId.value = schedule.id;
+                document.getElementById('editSubject').value = schedule.subject;
+                document.getElementById('editParallel').value = schedule.parallel || '';
+                document.getElementById('editDay').value = schedule.day;
+                document.getElementById('editStartTime').value = schedule.startTime.substring(0, 2) + ':' + schedule.startTime.substring(2);
+                document.getElementById('editEndTime').value = schedule.endTime.substring(0, 2) + ':' + schedule.endTime.substring(2);
+                document.getElementById('editNotes').value = schedule.notes || '';
+                
+                this.modal.style.display = 'flex';
+            }
+
+            close() {
+                this.modal.style.display = 'none';
+                this.form.reset();
+            }
+        }
+
+        // Clase para manejar el calendario
+        class Calendar {
+            constructor() {
+                this.dayContainers = document.querySelectorAll('.day-column');
+                this.editModal = new EditModal();
+            }
+
+            renderSchedules(schedules) {
+                // Ordenar horarios por hora de inicio
+                schedules.sort((a, b) => {
+                    if (a.startTime < b.startTime) return -1;
+                    if (a.startTime > b.startTime) return 1;
+                    return 0;
+                });
+
+                // Limpiar todos los contenedores
+                this.dayContainers.forEach(container => {
+                    const schedulesContainer = container.querySelector('.schedules-container');
+                    schedulesContainer.innerHTML = '';
+                });
+
+                // Renderizar horarios por día
+                schedules.forEach(schedule => {
+                    const dayColumn = this.getDayColumn(schedule.day);
+                    if (dayColumn) {
+                        const schedulesContainer = dayColumn.querySelector('.schedules-container');
+                        const card = this.createScheduleCard(schedule);
+                        schedulesContainer.appendChild(card);
+                    }
+                });
+            }
+
+            getDayColumn(day) {
+                return Array.from(this.dayContainers).find(column => column.dataset.day === day);
+            }
+
+            createScheduleCard(schedule) {
+                const card = document.createElement('div');
+                card.className = 'schedule-card bg-indigo-50 p-3 rounded-md shadow-sm relative';
+                
+                // Formatea la hora para mostrar (de "1730" a "17:30")
+                const startTime = schedule.startTime.substring(0, 2) + ':' + schedule.startTime.substring(2);
+                const endTime = schedule.endTime.substring(0, 2) + ':' + schedule.endTime.substring(2);
+                
+                card.innerHTML = `
+                    <div class="font-semibold text-indigo-800">${schedule.subject}</div>
+                    ${schedule.parallel ? `<div class="text-xs text-gray-600">Paralelo: ${schedule.parallel}</div>` : ''}
+                    <div class="text-sm mt-1 text-gray-800">${startTime} - ${endTime}</div>
+                    ${schedule.notes ? `<div class="text-xs mt-1 text-gray-600">${schedule.notes}</div>` : ''}
+                `;
+                
+                // Añadir evento de clic para abrir el modal de edición
+                card.addEventListener('click', () => {
+                    this.editModal.open(schedule);
+                });
+                
+                return card;
+            }
+        }
+
+        // Función para cambiar entre modo claro y oscuro
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            
+            // Guardar preferencia en localStorage
+            localStorage.setItem(DARK_MODE_KEY, isDark ? 'dark' : 'light');
+            
+            // Actualizar icono del botón
+            const toggleBtn = document.getElementById('toggleDarkMode');
+            if (isDark) {
+                toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>';
+            } else {
+                toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>';
+            }
+        }
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', () => {
-            // Suscribirse a cambios en los horarios
-            utils.getSchedules((schedules) => {
-                calendar.renderSchedules(schedules);
-            });
+            // Inicializar el calendario
+            const calendar = new Calendar();
+            
+            // Cargar y mostrar los horarios
+            const schedules = getSchedules();
+            console.log('Horarios cargados:', schedules.length);
+            calendar.renderSchedules(schedules);
+            
+            // Configurar el botón de modo oscuro
+            document.getElementById('toggleDarkMode').addEventListener('click', toggleDarkMode);
+            
+            // Aplicar modo oscuro si estaba activo
+            const savedMode = localStorage.getItem(DARK_MODE_KEY);
+            if (savedMode === 'dark') {
+                toggleDarkMode();
+            }
         });
     </script>
 </body>
