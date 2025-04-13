@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Mis Horarios de Tutorías{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+      // Configuración de Tailwind para modo oscuro
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              dark: {
+                bg: "#1a1a1a",
+                card: "#2d2d2d",
+                text: "#e5e5e5",
+              },
+            },
+          },
+        },
+      };
+
+      // Detectar preferencia del sistema
+      if (localStorage.getItem("darkMode") === null) {
+        localStorage.setItem("darkMode", window.matchMedia("(prefers-color-scheme: dark)").matches);
+      }
+    </script>
+  </head>
+  <body class="bg-gray-100 dark:bg-dark-bg min-h-full transition-colors duration-200">
+    <header class="bg-purple-600 dark:bg-purple-800 text-white p-4 shadow-lg">
+      <div class="container mx-auto flex justify-between items-center">
+        <h1 class="text-2xl font-bold">Mis Horarios de Tutorías</h1>
+        <div class="flex items-center space-x-4">
+          <!-- Botón de modo oscuro -->
+          <button @click="darkMode = !darkMode" class="p-2 rounded-lg bg-purple-700 hover:bg-purple-800 dark:bg-purple-900 dark:hover:bg-purple-950 transition-colors" :aria-label="darkMode ? 'Activar modo claro' : 'Activar modo oscuro'">
+            <!-- Ícono sol para modo claro -->
+            <svg x-show="darkMode" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <!-- Ícono luna para modo oscuro -->
+            <svg x-show="!darkMode" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+    <main class="container mx-auto p-4">
+      {% if messages %}
+      <div class="mb-4">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-100{% else %}bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100{% endif %} transition-colors">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %} {% block content %}{% endblock %}
+    </main>
+    <footer class="py-4 mt-8 text-center text-gray-600 dark:text-gray-400 text-sm">
+        <p>Organizando el futuro del aprendizaje. 2025</p>
+    </footer>
+  </body>
+</html>
