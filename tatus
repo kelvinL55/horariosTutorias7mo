@@ -1,0 +1,91 @@
+[1mdiff --git a/src/components/Modal.js b/src/components/Modal.js[m
+[1mindex afbb006..7ab18d3 100644[m
+[1m--- a/src/components/Modal.js[m
+[1m+++ b/src/components/Modal.js[m
+[36m@@ -14,12 +14,40 @@[m [mexport class Modal {[m
+     }[m
+ [m
+     setupEventListeners() {[m
+[31m-        this.cancelBtn.addEventListener('click', () => this.close());[m
+[32m+[m[32m        // Evento para cerrar el modal[m
+[32m+[m[32m        this.cancelBtn.addEventListener('click', (e) => {[m
+[32m+[m[32m            e.preventDefault();[m
+[32m+[m[32m            this.close();[m
+[32m+[m[32m        });[m
+[32m+[m
+[32m+[m[32m        // Cerrar al hacer clic fuera del modal[m
+         this.modal.addEventListener('click', (event) => {[m
+             if (event.target === this.modal) {[m
+                 this.close();[m
+             }[m
+         });[m
+[32m+[m
+[32m+[m[32m        // Manejar el envío del formulario[m
+[32m+[m[32m        this.form.addEventListener('submit', async (event) => {[m
+[32m+[m[32m            event.preventDefault();[m
+[32m+[m[32m            event.stopPropagation();[m
+[32m+[m[41m            [m
+[32m+[m[32m            if (this.onSubmitCallback) {[m
+[32m+[m[32m                try {[m
+[32m+[m[32m                    console.log('Enviando datos del formulario...');[m
+[32m+[m[32m                    await this.onSubmitCallback(this.getFormData());[m
+[32m+[m[32m                    console.log('Datos enviados exitosamente');[m
+[32m+[m[32m                } catch (error) {[m
+[32m+[m[32m                    console.error('Error al enviar datos:', error);[m
+[32m+[m[32m                }[m
+[32m+[m[32m            }[m
+[32m+[m[32m        });[m
+[32m+[m
+[32m+[m[32m        // Evento del botón guardar[m
+[32m+[m[32m        this.saveBtn.addEventListener('click', (e) => {[m
+[32m+[m[32m            e.preventDefault();[m
+[32m+[m[32m            this.form.requestSubmit();[m
+[32m+[m[32m        });[m
+     }[m
+ [m
+     open(schedule = null) {[m
+[36m@@ -30,8 +58,8 @@[m [mexport class Modal {[m
+             document.getElementById('subject').value = schedule.subject;[m
+             document.getElementById('parallel').value = schedule.parallel || '';[m
+             document.getElementById('day').value = schedule.day;[m
+[31m-            document.getElementById('startTime').value = schedule.startTime;[m
+[31m-            document.getElementById('endTime').value = schedule.endTime;[m
+[32m+[m[32m            document.getElementById('startTime').value = schedule.startTime.replace(/(\d{2})(\d{2})/, '$1:$2');[m
+[32m+[m[32m            document.getElementById('endTime').value = schedule.endTime.replace(/(\d{2})(\d{2})/, '$1:$2');[m
+             document.getElementById('notes').value = schedule.notes || '';[m
+             this.deleteBtn.classList.remove('hidden');[m
+             this.saveBtn.textContent = 'Actualizar';[m
+[36m@@ -52,26 +80,26 @@[m [mexport class Modal {[m
+ [m
+     getFormData() {[m
+         const formData = new FormData(this.form);[m
+[32m+[m[32m        const startTime = formData.get('startTime').replace(':', '');[m
+[32m+[m[32m        const endTime = formData.get('endTime').replace(':', '');[m
+         return {[m
+             id: this.scheduleId.value || generateId(),[m
+             subject: formData.get('subject'),[m
+             parallel: formData.get('parallel'),[m
+             day: formData.get('day'),[m
+[31m-            startTime: formData.get('startTime'),[m
+[31m-            endTime: formData.get('endTime'),[m
+[32m+[m[32m            startTime: startTime,[m
+[32m+[m[32m            endTime: endTime,[m
+             notes: formData.get('notes')[m
+         };[m
+     }[m
+ [m
+     setOnSubmit(callback) {[m
+[31m-        this.form.addEventListener('submit', (event) => {[m
+[31m-            event.preventDefault();[m
+[31m-            callback(this.getFormData());[m
+[31m-        });[m
+[32m+[m[32m        this.onSubmitCallback = callback;[m
+     }[m
+ [m
+     setOnDelete(callback) {[m
+[31m-        this.deleteBtn.addEventListener('click', () => {[m
+[32m+[m[32m        this.deleteBtn.addEventListener('click', (e) => {[m
+[32m+[m[32m            e.preventDefault();[m
+             if (confirm('¿Estás seguro de que deseas eliminar este horario?')) {[m
+                 callback(this.scheduleId.value);[m
+             }[m

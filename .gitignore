@@ -1,3 +1,8 @@
+# Archivos de Firebase que ya no se usan
+src/components/Modal.js
+src/js/firebase-config.js
+src/js/utils.js
+
 # Archivos del sistema
 .DS_Store
 Thumbs.db
@@ -15,7 +20,9 @@ dist/
 # Archivos de entorno
 .env
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Archivos de logs
 *.log
