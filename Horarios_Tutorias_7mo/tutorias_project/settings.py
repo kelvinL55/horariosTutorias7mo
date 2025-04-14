@@ -25,10 +25,8 @@ SECRET_KEY = 'django-insecure-(q8lwa2u9#es^hb=%-$r391zevs*76_4454%7fgsjoxn3t#z%-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['app-tutorias-7mo.onrender.com', 'localhost']
 
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
