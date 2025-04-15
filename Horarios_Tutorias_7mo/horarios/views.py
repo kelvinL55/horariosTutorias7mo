@@ -9,7 +9,7 @@ class HorariosListView(ListView):
     model = DiaSemana
     template_name = 'horarios/horarios_list.html'
     context_object_name = 'dias_semana'
-    ordering = ['id']  # Asumiendo que los IDs están en orden: 1=Lunes, 2=Martes, etc.
+    ordering = ['orden']  # Ahora ordena por el campo 'orden'
 
 def editar_dia(request, dia_id):
     dia = get_object_or_404(DiaSemana, id=dia_id)

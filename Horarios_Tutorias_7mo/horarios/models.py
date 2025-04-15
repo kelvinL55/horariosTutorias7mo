@@ -4,6 +4,7 @@ from django.db import models
 
 class DiaSemana(models.Model):
     nombre = models.CharField(max_length=10, unique=True)  # Lunes, Martes, etc.
+    orden = models.PositiveSmallIntegerField(default=1, verbose_name="Orden")
 
     def __str__(self):
         return self.nombre
