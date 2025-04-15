@@ -11,4 +11,5 @@ urlpatterns = [
     path('dia/agregar/', views.agregar_dia, name='agregar_dia'),
     path('dia/editar/<int:dia_id>/', views.editar_dia, name='editar_dia'),
     path('dia/eliminar/<int:dia_id>/', views.eliminar_dia, name='eliminar_dia'),
+    path('actualizar_url_curso/', views.actualizar_url_curso, name='actualizar_url_curso'),
 ] 

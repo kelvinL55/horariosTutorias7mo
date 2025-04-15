@@ -56,27 +56,19 @@
         <!-- Iteración sobre cada horario del día -->
         {% for horario in dia.horariotutoria_set.all %}
         <!-- Tarjeta para cada horario con estilos adaptados al modo oscuro/claro -->
-        <div class="bg-[#e7eafe] dark:bg-indigo-900 rounded-lg p-4 mb-4 last:mb-0 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] hover:bg-indigo-100 dark:hover:bg-indigo-800">
+        <div class="bg-[#e7eafe] dark:bg-indigo-900 rounded-lg p-4 mb-4 last:mb-0 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] hover:bg-indigo-100 dark:hover:bg-indigo-800 relative cursor-pointer horario-card" data-horario-id="{{ horario.id }}" data-materia="{{ horario.materia }}" data-paralelo="{{ horario.paralelo|default:'' }}" data-hora-inicio="{{ horario.hora_inicio|time:'H:i' }}" data-hora-fin="{{ horario.hora_fin|time:'H:i' }}" data-notas="{{ horario.notas|default:'' }}" data-url-curso="{{ horario.url_curso|default:'' }}">
           <!-- Encabezado de la tarjeta con título y botones de acción -->
-          <div class="flex justify-between items-center mb-4">
-            <!-- Título del horario con estilo y colores adaptados al modo oscuro/claro -->
+          <div class="flex justify-between items-center mb-4 pointer-events-none">
             <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ horario.materia }}</h3>
-            <!-- Contenedor de botones de acción (editar/eliminar) -->
             <div class="flex flex-col space-y-2">
-              <!-- Enlace para editar el horario con ícono de lápiz -->
-              <a href="{% url 'horarios:editar_horario' horario.id %}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
-                <!-- Ícono de edición (lápiz) -->
+              <a href="{% url 'horarios:editar_horario' horario.id %}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors pointer-events-auto" onclick="event.stopPropagation();">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </a>
-              <!-- Formulario para eliminar horario con confirmación mediante JavaScript -->
-              <form method="post" action="{% url 'horarios:eliminar_horario' horario.id %}" class="inline" onsubmit="return confirm('¿Estás seguro de eliminar este horario?');">
-                <!-- Token CSRF para protección contra ataques -->
+              <form method="post" action="{% url 'horarios:eliminar_horario' horario.id %}" class="inline pointer-events-auto" onsubmit="return confirm('¿Estás seguro de eliminar este horario?');" onclick="event.stopPropagation();">
                 {% csrf_token %}
-                <!-- Botón para eliminar el horario con ícono de papelera -->
                 <button type="submit" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors">
-                  <!-- Ícono de papelera -->
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
@@ -84,13 +76,22 @@
               </form>
             </div>
           </div>
-          <!-- Información adicional del horario -->
           {% if horario.paralelo %}
           <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Paralelo: {{ horario.paralelo }}</p>
           {% endif %}
           <p class="text-gray-800 dark:text-gray-200">{{ horario.hora_inicio|time:"H:i" }} - {{ horario.hora_fin|time:"H:i" }}</p>
           {% if horario.notas %}
           <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">{{ horario.notas }}</p>
+          {% endif %} {% if horario.url_curso %}
+          <p class="text-xs text-blue-700 dark:text-blue-300 mt-2 break-all">URL: <a href="{{ horario.url_curso }}" target="_blank" class="underline">{{ horario.url_curso }}</a></p>
+          {% endif %}
+          <!-- Botón flotante para ir a la URL del curso -->
+          {% if horario.url_curso %}
+          <a href="{{ horario.url_curso }}" target="_blank" class="absolute bottom-2 right-2 bg-indigo-600 text-white rounded-full p-2 shadow-lg hover:bg-indigo-800 transition-colors z-10 flex items-center justify-center btn-url-curso" title="Ir al curso" onclick="event.stopPropagation();">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7m0 0v7m0-7L10 14m-7 7h7a2 2 0 002-2v-7" />
+            </svg>
+          </a>
           {% endif %}
         </div>
         {% empty %}
@@ -101,4 +102,126 @@
     {% endfor %}
   </div>
 </div>
+
+<!-- Modal para editar la URL del curso -->
+<div id="modal-url-curso" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-dark-card rounded-lg shadow-2xl p-8 w-full max-w-lg relative">
+    <button id="cerrar-modal-url" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold">&times;</button>
+    <h2 class="text-2xl font-semibold text-indigo-700 dark:text-indigo-400 mb-4">Detalles del Horario</h2>
+    <div class="mb-2"><span class="font-bold">Materia:</span> <span id="modal-materia"></span></div>
+    <div class="mb-2"><span class="font-bold">Paralelo:</span> <span id="modal-paralelo"></span></div>
+    <div class="mb-2"><span class="font-bold">Hora:</span> <span id="modal-hora"></span></div>
+    <div class="mb-2"><span class="font-bold">Notas:</span> <span id="modal-notas"></span></div>
+    <form id="form-url-curso" class="mt-4">
+      <label for="modal-url-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL del Curso</label>
+      <input type="url" id="modal-url-input" name="url_curso" placeholder="https://..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors" />
+      <input type="hidden" id="modal-horario-id" name="horario_id" />
+      <button type="submit" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors">Guardar URL</button>
+    </form>
+    <div id="modal-mensaje" class="mt-2 text-sm"></div>
+  </div>
+</div>
+
+<script>
+  // Abrir modal al hacer click en la card
+  const cards = document.querySelectorAll(".horario-card");
+  const modal = document.getElementById("modal-url-curso");
+  const cerrarModalBtn = document.getElementById("cerrar-modal-url");
+  const formUrl = document.getElementById("form-url-curso");
+  const mensaje = document.getElementById("modal-mensaje");
+
+  cards.forEach((card) => {
+    card.addEventListener("click", function () {
+      document.getElementById("modal-materia").textContent = card.dataset.materia;
+      document.getElementById("modal-paralelo").textContent = card.dataset.paralelo;
+      document.getElementById("modal-hora").textContent = card.dataset.horaInicio + " - " + card.dataset.horaFin;
+      document.getElementById("modal-notas").textContent = card.dataset.notas;
+      document.getElementById("modal-url-input").value = card.dataset.urlCurso;
+      document.getElementById("modal-horario-id").value = card.dataset.horarioId;
+      mensaje.textContent = "";
+      modal.classList.remove("hidden");
+    });
+  });
+
+  cerrarModalBtn.addEventListener("click", function () {
+    modal.classList.add("hidden");
+  });
+
+  // Guardar URL vía AJAX
+  formUrl.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const horarioId = document.getElementById("modal-horario-id").value;
+    const urlCurso = document.getElementById("modal-url-input").value;
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+    fetch("{% url 'horarios:actualizar_url_curso' %}", {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+      },
+      body: `horario_id=${horarioId}&url_curso=${encodeURIComponent(urlCurso)}`,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          mensaje.textContent = "¡URL guardada correctamente!";
+          mensaje.className = "mt-2 text-green-600";
+          // Actualizar la card en la vista
+          const card = document.querySelector(`.horario-card[data-horario-id='${horarioId}']`);
+          if (card) {
+            card.dataset.urlCurso = urlCurso;
+            // Actualizar o crear el texto/enlace de la URL
+            let urlP = card.querySelector(".url-curso-text");
+            if (!urlP && urlCurso) {
+              urlP = document.createElement("p");
+              urlP.className = "text-xs text-blue-700 dark:text-blue-300 mt-2 break-all url-curso-text";
+              card.appendChild(urlP);
+            }
+            if (urlP) {
+              if (urlCurso) {
+                urlP.innerHTML = `URL: <a href="${urlCurso}" target="_blank" class="underline">${urlCurso}</a>`;
+              } else {
+                urlP.remove();
+              }
+            }
+            // Botón flotante
+            let btn = card.querySelector(".btn-url-curso");
+            if (urlCurso && !btn) {
+              btn = document.createElement("a");
+              btn.href = urlCurso;
+              btn.target = "_blank";
+              btn.className = "absolute bottom-2 right-2 bg-indigo-600 text-white rounded-full p-2 shadow-lg hover:bg-indigo-800 transition-colors z-10 flex items-center justify-center btn-url-curso";
+              btn.title = "Ir al curso";
+              btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7m0 0v7m0-7L10 14m-7 7h7a2 2 0 002-2v-7" /></svg>`;
+              btn.onclick = function (e) {
+                e.stopPropagation();
+              };
+              card.appendChild(btn);
+            } else if (btn && urlCurso) {
+              btn.href = urlCurso;
+            } else if (btn && !urlCurso) {
+              btn.remove();
+            }
+          }
+          setTimeout(() => {
+            modal.classList.add("hidden");
+          }, 1000);
+        } else {
+          mensaje.textContent = data.error || "Error al guardar la URL.";
+          mensaje.className = "mt-2 text-red-600";
+        }
+      })
+      .catch(() => {
+        mensaje.textContent = "Error de red al guardar la URL.";
+        mensaje.className = "mt-2 text-red-600";
+      });
+  });
+  // Cerrar modal al hacer click fuera del contenido
+  modal.addEventListener("click", function (e) {
+    if (e.target === modal) {
+      modal.classList.add("hidden");
+    }
+  });
+</script>
 {% endblock %}

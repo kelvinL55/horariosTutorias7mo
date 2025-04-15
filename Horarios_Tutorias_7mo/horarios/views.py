@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView
 from .models import DiaSemana, HorarioTutoria
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
 
@@ -127,3 +129,17 @@ def eliminar_horario(request, horario_id):
             messages.error(request, f'Error al eliminar el horario: {str(e)}')
     
     return redirect('horarios:lista_horarios')
+
+@csrf_exempt
+def actualizar_url_curso(request):
+    if request.method == 'POST':
+        horario_id = request.POST.get('horario_id')
+        url_curso = request.POST.get('url_curso', '').strip()
+        try:
+            horario = HorarioTutoria.objects.get(id=horario_id)
+            horario.url_curso = url_curso
+            horario.save()
+            return JsonResponse({'success': True, 'url_curso': horario.url_curso})
+        except HorarioTutoria.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Horario no encontrado.'})
+    return JsonResponse({'success': False, 'error': 'Método no permitido.'})

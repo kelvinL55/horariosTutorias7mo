@@ -20,6 +20,7 @@ class HorarioTutoria(models.Model):
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     notas = models.TextField(blank=True, null=True, verbose_name="Notas (Opcional)")
+    url_curso = models.CharField(max_length=300, blank=True, null=True, verbose_name="URL del Curso")
     
     def __str__(self):
         return f"{self.materia} - {self.dia} ({self.hora_inicio.strftime('%H:%M')} - {self.hora_fin.strftime('%H:%M')})"
