@@ -11,6 +11,9 @@ class HorariosListView(ListView):
     context_object_name = 'dias_semana'
     ordering = ['orden']  # Ahora ordena por el campo 'orden'
 
+    def get_queryset(self):
+        return DiaSemana.objects.all().order_by('orden')
+
 def editar_dia(request, dia_id):
     dia = get_object_or_404(DiaSemana, id=dia_id)
     
