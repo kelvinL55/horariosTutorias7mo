@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-(q8lwa2u9#es^hb=%-$r391zevs*76_4454%7fgsjoxn3t#z%-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['app-tutorias-7mo.onrender.com', 'localhost']
+# ALLOWED_HOSTS dinámico para desarrollo y producción
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,app-tutorias-7mo.onrender.com").split(",")
 
 
 INSTALLED_APPS = [
