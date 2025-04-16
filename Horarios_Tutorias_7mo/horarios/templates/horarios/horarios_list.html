@@ -56,10 +56,20 @@
         <!-- Iteración sobre cada horario del día -->
         {% for horario in dia.horariotutoria_set.all %}
         <!-- Tarjeta para cada horario con estilos adaptados al modo oscuro/claro -->
-        <div class="bg-[#e7eafe] dark:bg-indigo-900 rounded-lg p-4 mb-4 last:mb-0 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] hover:bg-indigo-100 dark:hover:bg-indigo-800 relative cursor-pointer horario-card" data-horario-id="{{ horario.id }}" data-materia="{{ horario.materia }}" data-paralelo="{{ horario.paralelo|default:'' }}" data-hora-inicio="{{ horario.hora_inicio|time:'H:i' }}" data-hora-fin="{{ horario.hora_fin|time:'H:i' }}" data-notas="{{ horario.notas|default:'' }}" data-url-curso="{{ horario.url_curso|default:'' }}">
+        <div class="bg-[#e7eafe] dark:bg-indigo-900 rounded-lg p-4 mb-4 last:mb-0 transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] hover:bg-indigo-100 dark:hover:bg-indigo-800 relative cursor-pointer horario-card" data-horario-id="{{ horario.id }}" data-materia="{{ horario.materia }}" data-paralelo="{{ horario.paralelo|default:'' }}" data-hora-inicio="{{ horario.hora_inicio|time:'H:i' }}" data-hora-fin="{{ horario.hora_fin|time:'H:i' }}" data-notas="{{ horario.notas|default:'' }}" data-url-curso="{{ horario.url_curso|default:'' }}" data-ruta-local="{{ horario.ruta_local|default:'' }}">
+          <!-- Botón para abrir la ruta local (centro derecho) -->
+          {% if horario.ruta_local %}
+          <a href="file:///{{ horario.ruta_local|urlencode }}" class="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-800 text-white rounded-full p-2 shadow transition-colors btn-ruta-local z-20 flex items-center justify-center" title="Abrir carpeta local" onclick="event.stopPropagation(); return abrirRutaLocal('{{ horario.ruta_local|escapejs }}', this);">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9-5 9 5" />
+            </svg>
+          </a>
+          {% endif %}
           <!-- Encabezado de la tarjeta con título y botones de acción -->
           <div class="flex justify-between items-center mb-4 pointer-events-none">
-            <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ horario.materia }}</h3>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ horario.materia }}</h3>
+            </div>
             <div class="flex flex-col space-y-2">
               <a href="{% url 'horarios:editar_horario' horario.id %}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors pointer-events-auto" onclick="event.stopPropagation();">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,8 +125,10 @@
     <form id="form-url-curso" class="mt-4">
       <label for="modal-url-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL del Curso</label>
       <input type="url" id="modal-url-input" name="url_curso" placeholder="https://..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors" />
+      <label for="modal-ruta-local-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4">Ruta Local (ej: C:\\Users\\Kelvin\\...)</label>
+      <input type="text" id="modal-ruta-local-input" name="ruta_local" placeholder="C:\\ruta\\a\\la\\carpeta" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors" />
       <input type="hidden" id="modal-horario-id" name="horario_id" />
-      <button type="submit" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors">Guardar URL</button>
+      <button type="submit" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors">Guardar</button>
     </form>
     <div id="modal-mensaje" class="mt-2 text-sm"></div>
   </div>
@@ -137,6 +149,7 @@
       document.getElementById("modal-hora").textContent = card.dataset.horaInicio + " - " + card.dataset.horaFin;
       document.getElementById("modal-notas").textContent = card.dataset.notas;
       document.getElementById("modal-url-input").value = card.dataset.urlCurso;
+      document.getElementById("modal-ruta-local-input").value = card.dataset.rutaLocal;
       document.getElementById("modal-horario-id").value = card.dataset.horarioId;
       mensaje.textContent = "";
       modal.classList.remove("hidden");
@@ -147,30 +160,32 @@
     modal.classList.add("hidden");
   });
 
-  // Guardar URL vía AJAX
+  // Guardar URL y ruta local vía AJAX
   formUrl.addEventListener("submit", function (e) {
     e.preventDefault();
     const horarioId = document.getElementById("modal-horario-id").value;
     const urlCurso = document.getElementById("modal-url-input").value;
+    const rutaLocal = document.getElementById("modal-ruta-local-input").value;
     const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
-    fetch("{% url 'horarios:actualizar_url_curso' %}", {
+    fetch("{% url 'horarios:actualizar_datos_horario' %}", {
       method: "POST",
       headers: {
         "X-Requested-With": "XMLHttpRequest",
         "Content-Type": "application/x-www-form-urlencoded",
         ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
       },
-      body: `horario_id=${horarioId}&url_curso=${encodeURIComponent(urlCurso)}`,
+      body: `horario_id=${horarioId}&url_curso=${encodeURIComponent(urlCurso)}&ruta_local=${encodeURIComponent(rutaLocal)}`,
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          mensaje.textContent = "¡URL guardada correctamente!";
+          mensaje.textContent = "¡Datos guardados correctamente!";
           mensaje.className = "mt-2 text-green-600";
           // Actualizar la card en la vista
           const card = document.querySelector(`.horario-card[data-horario-id='${horarioId}']`);
           if (card) {
             card.dataset.urlCurso = urlCurso;
+            card.dataset.rutaLocal = rutaLocal;
             // Actualizar o crear el texto/enlace de la URL
             let urlP = card.querySelector(".url-curso-text");
             if (!urlP && urlCurso) {
@@ -185,7 +200,7 @@
                 urlP.remove();
               }
             }
-            // Botón flotante
+            // Botón flotante URL
             let btn = card.querySelector(".btn-url-curso");
             if (urlCurso && !btn) {
               btn = document.createElement("a");
@@ -193,7 +208,7 @@
               btn.target = "_blank";
               btn.className = "absolute bottom-2 right-2 bg-indigo-600 text-white rounded-full p-2 shadow-lg hover:bg-indigo-800 transition-colors z-10 flex items-center justify-center btn-url-curso";
               btn.title = "Ir al curso";
-              btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7m0 0v7m0-7L10 14m-7 7h7a2 2 0 002-2v-7" /></svg>`;
+              btn.innerHTML = `<svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M14 3h7m0 0v7m0-7L10 14m-7 7h7a2 2 0 002-2v-7\" /></svg>`;
               btn.onclick = function (e) {
                 e.stopPropagation();
               };
@@ -203,17 +218,39 @@
             } else if (btn && !urlCurso) {
               btn.remove();
             }
+            // Botón ruta local
+            let btnRuta = card.querySelector(".btn-ruta-local");
+            if (rutaLocal && !btnRuta) {
+              btnRuta = document.createElement("a");
+              btnRuta.href = `file:///${encodeURIComponent(rutaLocal)}`;
+              btnRuta.className = "bg-green-600 hover:bg-green-800 text-white rounded-full p-2 shadow transition-colors btn-ruta-local";
+              btnRuta.title = "Abrir carpeta local";
+              btnRuta.style.marginRight = "0.5rem";
+              btnRuta.innerHTML = `<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9-5 9 5\" /></svg>`;
+              btnRuta.onclick = function (e) {
+                e.stopPropagation();
+              };
+              // Insertar antes del título
+              const titleDiv = card.querySelector("h3");
+              if (titleDiv && titleDiv.parentNode) {
+                titleDiv.parentNode.insertBefore(btnRuta, titleDiv);
+              }
+            } else if (btnRuta && rutaLocal) {
+              btnRuta.href = `file:///${encodeURIComponent(rutaLocal)}`;
+            } else if (btnRuta && !rutaLocal) {
+              btnRuta.remove();
+            }
           }
           setTimeout(() => {
             modal.classList.add("hidden");
           }, 1000);
         } else {
-          mensaje.textContent = data.error || "Error al guardar la URL.";
+          mensaje.textContent = data.error || "Error al guardar los datos.";
           mensaje.className = "mt-2 text-red-600";
         }
       })
       .catch(() => {
-        mensaje.textContent = "Error de red al guardar la URL.";
+        mensaje.textContent = "Error de red al guardar los datos.";
         mensaje.className = "mt-2 text-red-600";
       });
   });
@@ -223,5 +260,27 @@
       modal.classList.add("hidden");
     }
   });
+
+  // Función para intentar abrir la ruta local y copiar si falla
+  function abrirRutaLocal(ruta, el) {
+    // Intentar abrir la ruta (file:///) normalmente
+    const url = `file:///${ruta.replace(/\\/g, "/")}`;
+    // Probar si el navegador permite abrirla
+    window.open(url, "_blank");
+    // Intentar copiar al portapapeles por si no funciona
+    setTimeout(() => {
+      if (!window.navigator.userAgent.includes("Electron")) {
+        navigator.clipboard.writeText(ruta).then(() => {
+          el.title = "Ruta copiada al portapapeles";
+          el.classList.add("ring", "ring-green-400");
+          setTimeout(() => {
+            el.title = "Abrir carpeta local";
+            el.classList.remove("ring", "ring-green-400");
+          }, 1500);
+        });
+      }
+    }, 500);
+    return false;
+  }
 </script>
 {% endblock %}

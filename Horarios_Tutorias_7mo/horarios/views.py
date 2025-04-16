@@ -131,15 +131,23 @@ def eliminar_horario(request, horario_id):
     return redirect('horarios:lista_horarios')
 
 @csrf_exempt
-def actualizar_url_curso(request):
+def actualizar_datos_horario(request):
     if request.method == 'POST':
         horario_id = request.POST.get('horario_id')
         url_curso = request.POST.get('url_curso', '').strip()
+        ruta_local = request.POST.get('ruta_local', '').strip()
         try:
             horario = HorarioTutoria.objects.get(id=horario_id)
-            horario.url_curso = url_curso
+            if 'url_curso' in request.POST:
+                horario.url_curso = url_curso
+            if 'ruta_local' in request.POST:
+                horario.ruta_local = ruta_local
             horario.save()
-            return JsonResponse({'success': True, 'url_curso': horario.url_curso})
+            return JsonResponse({
+                'success': True,
+                'url_curso': horario.url_curso,
+                'ruta_local': horario.ruta_local
+            })
         except HorarioTutoria.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Horario no encontrado.'})
     return JsonResponse({'success': False, 'error': 'Método no permitido.'})
