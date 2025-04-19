@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView
-from .models import DiaSemana, HorarioTutoria
+from .models import DiaSemana, HorarioTutoria, ComentarioHorario
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 
@@ -151,3 +153,66 @@ def actualizar_datos_horario(request):
         except HorarioTutoria.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Horario no encontrado.'})
     return JsonResponse({'success': False, 'error': 'Método no permitido.'})
+
+@login_required
+def obtener_comentarios(request, horario_id):
+    comentarios = ComentarioHorario.objects.filter(horario_id=horario_id, usuario=request.user).order_by('-creado')
+    data = [
+        {
+            'id': c.id,
+            'texto': c.texto,
+            'creado': c.creado.strftime('%d/%m/%Y %H:%M'),
+            'actualizado': c.actualizado.strftime('%d/%m/%Y %H:%M')
+        }
+        for c in comentarios
+    ]
+    return JsonResponse({'comentarios': data})
+
+@require_POST
+@login_required
+def guardar_comentario(request):
+    horario_id = request.POST.get('horario_id')
+    texto = request.POST.get('texto', '').strip()
+    comentario_id = request.POST.get('comentario_id')
+    
+    if not texto:
+        return JsonResponse({'success': False, 'error': 'El comentario no puede estar vacío.'})
+    
+    if comentario_id:
+        # Editar comentario existente
+        try:
+            comentario = ComentarioHorario.objects.get(id=comentario_id, usuario=request.user)
+            comentario.texto = texto
+            comentario.save()
+            return JsonResponse({'success': True, 'comentario': {
+                'id': comentario.id,
+                'texto': comentario.texto,
+                'creado': comentario.creado.strftime('%d/%m/%Y %H:%M'),
+                'actualizado': comentario.actualizado.strftime('%d/%m/%Y %H:%M')
+            }})
+        except ComentarioHorario.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Comentario no encontrado.'})
+    else:
+        # Nuevo comentario
+        comentario = ComentarioHorario.objects.create(
+            horario_id=horario_id,
+            usuario=request.user,
+            texto=texto
+        )
+        return JsonResponse({'success': True, 'comentario': {
+            'id': comentario.id,
+            'texto': comentario.texto,
+            'creado': comentario.creado.strftime('%d/%m/%Y %H:%M'),
+            'actualizado': comentario.actualizado.strftime('%d/%m/%Y %H:%M')
+        }})
+
+@require_POST
+@login_required
+def eliminar_comentario(request):
+    comentario_id = request.POST.get('comentario_id')
+    try:
+        comentario = ComentarioHorario.objects.get(id=comentario_id, usuario=request.user)
+        comentario.delete()
+        return JsonResponse({'success': True})
+    except ComentarioHorario.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Comentario no encontrado.'})

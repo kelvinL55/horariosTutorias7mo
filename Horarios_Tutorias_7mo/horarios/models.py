@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 # Create your models here.
 
@@ -30,3 +31,13 @@ class HorarioTutoria(models.Model):
         verbose_name = "Horario de Tutoría"
         verbose_name_plural = "Horarios de Tutorías"
         ordering = ['dia', 'hora_inicio']
+
+class ComentarioHorario(models.Model):
+    horario = models.ForeignKey('HorarioTutoria', on_delete=models.CASCADE, related_name='comentarios')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    texto = models.TextField()
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Comentario de {self.usuario} en {self.horario}"
