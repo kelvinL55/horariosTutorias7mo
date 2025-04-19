@@ -103,6 +103,12 @@
             </svg>
           </a>
           {% endif %}
+          <button type="button" class="mt-2 bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 transition-colors text-xs flex items-center btn-comentarios" data-horario-id="{{ horario.id }}">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V10a2 2 0 012-2h2m5-4h-2a2 2 0 00-2 2v4a2 2 0 002 2h2a2 2 0 002-2V6a2 2 0 00-2-2z" />
+            </svg>
+            Comentarios/Tareas
+          </button>
         </div>
         {% empty %}
         <p class="text-gray-500 dark:text-gray-400 italic">No hay tutorías programadas</p>
@@ -123,6 +129,7 @@
     <div class="mb-2"><span class="font-bold text-gray-800 dark:text-gray-100">Hora:</span> <span id="modal-hora" class="text-gray-800 dark:text-gray-100"></span></div>
     <div class="mb-2"><span class="font-bold text-gray-800 dark:text-gray-100">Notas:</span> <span id="modal-notas" class="text-gray-800 dark:text-gray-100"></span></div>
     <form id="form-url-curso" class="mt-4">
+      {% csrf_token %}
       <label for="modal-url-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL del Curso</label>
       <input type="url" id="modal-url-input" name="url_curso" placeholder="https://..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors" />
       <label for="modal-ruta-local-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4">Ruta Local (ej: C:\\Users\\Kelvin\\...)</label>
@@ -131,6 +138,21 @@
       <button type="submit" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors">Guardar</button>
     </form>
     <div id="modal-mensaje" class="mt-2 text-sm"></div>
+  </div>
+</div>
+
+<div id="modal-comentarios" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-dark-card rounded-lg shadow-2xl p-6 w-full max-w-lg relative">
+    <button id="cerrar-modal-comentarios" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold">&times;</button>
+    <h2 class="text-xl font-semibold text-yellow-700 dark:text-yellow-400 mb-4 text-center">Comentarios / Tareas</h2>
+    <div id="comentarios-lista" class="mb-4 max-h-60 overflow-y-auto"></div>
+    <form id="form-comentario" class="flex flex-col gap-2">
+      {% csrf_token %}
+      <input type="hidden" id="comentario-id" name="comentario_id" />
+      <textarea id="comentario-texto" name="texto" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 transition-colors" placeholder="Escribe tu comentario o tarea..."></textarea>
+      <button type="submit" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors">Guardar</button>
+      <div id="comentario-mensaje" class="text-sm mt-1"></div>
+    </form>
   </div>
 </div>
 
@@ -281,6 +303,143 @@
       }
     }, 500);
     return false;
+  }
+
+  // --- Comentarios/Tareas ---
+  const btnsComentarios = document.querySelectorAll(".btn-comentarios");
+  const modalComentarios = document.getElementById("modal-comentarios");
+  const cerrarModalComentarios = document.getElementById("cerrar-modal-comentarios");
+  const comentariosLista = document.getElementById("comentarios-lista");
+  const formComentario = document.getElementById("form-comentario");
+  const comentarioTexto = document.getElementById("comentario-texto");
+  const comentarioIdInput = document.getElementById("comentario-id");
+  const comentarioMensaje = document.getElementById("comentario-mensaje");
+  let horarioIdActual = null;
+
+  btnsComentarios.forEach((btn) => {
+    btn.addEventListener("click", function (e) {
+      horarioIdActual = btn.dataset.horarioId;
+      cargarComentarios(horarioIdActual);
+      comentarioTexto.value = "";
+      comentarioIdInput.value = "";
+      comentarioMensaje.textContent = "";
+      modalComentarios.classList.remove("hidden");
+    });
+  });
+
+  cerrarModalComentarios.addEventListener("click", function () {
+    modalComentarios.classList.add("hidden");
+  });
+
+  modalComentarios.addEventListener("click", function (e) {
+    if (e.target === modalComentarios) {
+      modalComentarios.classList.add("hidden");
+    }
+  });
+
+  function cargarComentarios(horarioId) {
+    comentariosLista.innerHTML = '<div class="text-gray-500">Cargando...</div>';
+    fetch(`/horarios/comentarios/${horarioId}/`)
+      .then((res) => res.json())
+      .then((data) => {
+        comentariosLista.innerHTML = "";
+        if (data.comentarios.length === 0) {
+          comentariosLista.innerHTML = '<div class="text-gray-400 italic">No hay comentarios ni tareas.</div>';
+        } else {
+          data.comentarios.forEach((com) => {
+            const div = document.createElement("div");
+            div.className = "bg-yellow-100 dark:bg-yellow-900 rounded p-2 mb-2 flex justify-between items-start";
+            div.innerHTML = `
+              <div>
+                <div class="text-sm text-gray-800 dark:text-gray-100">${com.texto}</div>
+                <div class="text-xs text-gray-500 mt-1">Creado: ${com.creado}${com.creado !== com.actualizado ? " | Editado: " + com.actualizado : ""}</div>
+              </div>
+              <div class="flex flex-col gap-1 ml-2">
+                <button class="text-blue-600 hover:text-blue-800 text-xs btn-editar-comentario" data-id="${com.id}" data-texto="${encodeURIComponent(com.texto)}" title="Editar">✏️</button>
+                <button class="text-red-600 hover:text-red-800 text-xs btn-eliminar-comentario" data-id="${com.id}" title="Eliminar">🗑️</button>
+              </div>
+            `;
+            comentariosLista.appendChild(div);
+          });
+          // Asignar eventos a los botones de editar y eliminar
+          comentariosLista.querySelectorAll(".btn-editar-comentario").forEach((btn) => {
+            btn.addEventListener("click", function (e) {
+              comentarioIdInput.value = btn.dataset.id;
+              comentarioTexto.value = decodeURIComponent(btn.dataset.texto);
+              comentarioTexto.focus();
+              comentarioMensaje.textContent = "";
+              e.stopPropagation();
+            });
+          });
+          comentariosLista.querySelectorAll(".btn-eliminar-comentario").forEach((btn) => {
+            btn.addEventListener("click", function (e) {
+              if (confirm("¿Eliminar este comentario/tarea?")) {
+                eliminarComentario(btn.dataset.id);
+              }
+              e.stopPropagation();
+            });
+          });
+        }
+      });
+  }
+
+  formComentario.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const texto = comentarioTexto.value.trim();
+    const comentarioId = comentarioIdInput.value;
+    if (!texto) {
+      comentarioMensaje.textContent = "El comentario no puede estar vacío.";
+      comentarioMensaje.className = "text-red-600 mt-1";
+      return;
+    }
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+    fetch("/horarios/comentarios/guardar/", {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+      },
+      body: `horario_id=${horarioIdActual}&texto=${encodeURIComponent(texto)}${comentarioId ? `&comentario_id=${comentarioId}` : ""}`,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          comentarioMensaje.textContent = "¡Guardado!";
+          comentarioMensaje.className = "text-green-600 mt-1";
+          comentarioTexto.value = "";
+          comentarioIdInput.value = "";
+          cargarComentarios(horarioIdActual);
+        } else {
+          comentarioMensaje.textContent = data.error || "Error al guardar.";
+          comentarioMensaje.className = "text-red-600 mt-1";
+        }
+      })
+      .catch(() => {
+        comentarioMensaje.textContent = "Error de red.";
+        comentarioMensaje.className = "text-red-600 mt-1";
+      });
+  });
+
+  function eliminarComentario(comentarioId) {
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+    fetch("/horarios/comentarios/eliminar/", {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+      },
+      body: `comentario_id=${comentarioId}`,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          cargarComentarios(horarioIdActual);
+        } else {
+          alert(data.error || "Error al eliminar.");
+        }
+      });
   }
 </script>
 {% endblock %}

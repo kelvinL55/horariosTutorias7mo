@@ -12,4 +12,7 @@ urlpatterns = [
     path('dia/editar/<int:dia_id>/', views.editar_dia, name='editar_dia'),
     path('dia/eliminar/<int:dia_id>/', views.eliminar_dia, name='eliminar_dia'),
     path('actualizar_datos_horario/', views.actualizar_datos_horario, name='actualizar_datos_horario'),
+    path('comentarios/<int:horario_id>/', views.obtener_comentarios, name='obtener_comentarios'),
+    path('comentarios/guardar/', views.guardar_comentario, name='guardar_comentario'),
+    path('comentarios/eliminar/', views.eliminar_comentario, name='eliminar_comentario'),
 ] 
