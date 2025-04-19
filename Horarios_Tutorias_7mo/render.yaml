@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: horarios-tutorias-7mo
+    env: python
+    buildCommand:
+      - pip install -r requirements.txt
+      - python manage.py collectstatic --noinput
+    startCommand: gunicorn tutorias_project.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: tutorias_project.settings
+      - key: PYTHON_VERSION
+        value: 3.11
