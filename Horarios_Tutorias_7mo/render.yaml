@@ -5,9 +5,14 @@ services:
     buildCommand:
       - pip install -r requirements.txt
       - python manage.py collectstatic --noinput
+      - python manage.py migrate --noinput
     startCommand: gunicorn tutorias_project.wsgi:application
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: tutorias_project.settings
       - key: PYTHON_VERSION
         value: 3.11
+      - key: DEBUG
+        value: False
+      - key: SECRET_KEY
+        generateValue: true

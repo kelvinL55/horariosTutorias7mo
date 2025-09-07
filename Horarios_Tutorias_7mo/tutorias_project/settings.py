@@ -21,10 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(q8lwa2u9#es^hb=%-$r391zevs*76_4454%7fgsjoxn3t#z%-'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-(q8lwa2u9#es^hb=%-$r391zevs*76_4454%7fgsjoxn3t#z%-')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 # ALLOWED_HOSTS dinámico para desarrollo y producción
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,app-tutorias-7mo.onrender.com").split(",")
@@ -75,12 +75,21 @@ WSGI_APPLICATION = 'tutorias_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Configuración de base de datos para desarrollo y producción
+if os.getenv('DATABASE_URL'):
+    # Configuración para producción (Render con PostgreSQL)
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
     }
-}
+else:
+    # Configuración para desarrollo (SQLite)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -119,10 +128,16 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# Directorio para archivos estáticos globales (opcional si solo usas los de las apps)
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-# Almacenamiento recomendado para Whitenoise
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Directorio para archivos estáticos globales
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, 'horarios', 'static'),
+]
+
+# Configuración de archivos estáticos para producción
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # Default primary key field type
